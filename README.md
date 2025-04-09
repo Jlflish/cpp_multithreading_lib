@@ -44,4 +44,3 @@ cpp_multithreading_lib/
 │── README.md
 │── .gitignore
 ```
-</rewritten_file>
