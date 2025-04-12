@@ -3,78 +3,81 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
+#include <cstddef>
 
 namespace multithreaded_ds {
 
 template <typename T>
 class concurrent_stack {
-public:
-    concurrent_stack() : top(nullptr), stack_size(0) {}
+private:
+    struct Node {
+        Node *next;
+        T data;
+        Node(const T &init) : data(init), next(nullptr) {}
+    };
 
-    ~concurrent_stack() {
+    // top of the stack
+    Node *top;
+    // size of the stack
+    size_t stack_size;
+    // lock of the stack
+    std::mutex mtx;
+
+public:
+    concurrent_stack() noexcept : top(nullptr), stack_size(0) {}
+    
+    ~concurrent_stack() noexcept {
         clear();
     }
 
-    void push(const T& value) {
+    void push(const T& value) noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
         Node* new_node = new Node(value);
-        Node* expected = top.load();
-        new_node->next = expected;
-        while (!top.compare_exchange_weak(expected, new_node)) {
-            new_node->next = expected;
-        }
-        stack_size.fetch_add(1);
+        new_node->next = top;
+        top = new_node;
+        stack_size++;
     }
 
-    bool pop(T& value) {
-        Node* old_top = top.load();
-        if (old_top == nullptr) return false;
-
-        while (!top.compare_exchange_weak(old_top, old_top->next.load())) {
-            if (old_top == nullptr) return false;
-        }
-
+    bool pop(T& value) noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (top == nullptr) return false;
+        
+        Node* old_top = top;
         value = old_top->data;
+        top = old_top->next;
         delete old_top;
-        stack_size.fetch_sub(1);
+        stack_size--;
         return true;
     }
 
-    bool isEmpty() const {
-        return top.load() == nullptr;
+    bool isEmpty() noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
+        return top == nullptr;
     }
 
-    size_t size() const {
-        return stack_size.load();
+    size_t size() noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
+        return stack_size;
     }
 
-    void clear() {
-        T value;
-        while (pop(value)) {
-            // Keep popping until empty
+    void clear() noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
+        while (top != nullptr) {
+            Node* old_top = top;
+            top = old_top->next;
+            delete old_top;
         }
+        stack_size = 0;
     }
 
-    bool peek(T& value) const {
-        Node* current_top = top.load();
-        if (current_top == nullptr) return false;
-        value = current_top->data;
+    bool peek(T& value) noexcept {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (top == nullptr) return false;
+        value = top->data;
         return true;
     }
-
-private:
-    struct Node {
-        T data;
-        std::atomic<Node*> next;
-
-        Node(const T& value) : data(value), next(nullptr) {}
-    };
-
-    // top pointer of the stack
-    std::atomic<Node*> top;
-    // size of the stack
-    std::atomic<size_t> stack_size;
 };
 
 }  // namespace multithreaded_ds
-
 #endif
