@@ -1,11 +1,10 @@
-#ifndef CONCURRENT_STACK_HPP
-#define CONCURRENT_STACK_HPP
+#pragma once
 
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <cstddef>
-
+vbzxbz
 namespace multithreaded_ds {
 
 template <typename T>
@@ -80,4 +79,3 @@ public:
 };
 
 }  // namespace multithreaded_ds
-#endif
