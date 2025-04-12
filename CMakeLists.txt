@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_library(multithreaded_ds
+if(WIN32)
+    add_definitions(-D_WIN32_WINNT=0x0601)
+endif()
+
+add_library(multithreaded_ds STATIC
     src/hazard_pointer.cpp
 )
 
