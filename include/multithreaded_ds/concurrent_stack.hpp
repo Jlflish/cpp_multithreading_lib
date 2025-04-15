@@ -1,9 +1,6 @@
 #pragma once
 
-#include <atomic>
-#include <memory>
 #include <mutex>
-#include <cstddef>
 
 namespace multithreaded_ds {
 
