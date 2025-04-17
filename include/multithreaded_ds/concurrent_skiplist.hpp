@@ -12,13 +12,13 @@ template <typename T, int P = 20>
 class Skiplist {
 private:
     struct Node {
-        std::vector<std::shared_ptr<Node>> next;
+        std::vector<Node*> next;
         std::optional<T> value;
         Node(std::optional<T> val = std::nullopt)
             : value(val), next(P, nullptr) {}
     };
 
-    std::shared_ptr<Node> m_head;
+    Node* m_head;
     std::mt19937_64 rng{std::random_device{}()};
     
     bool random_level_check() {
@@ -29,7 +29,16 @@ private:
 
 public:
     Skiplist() {
-        m_head = std::make_shared<Node>();
+        m_head = new Node();
+    }
+
+    ~Skiplist() {
+        auto cur = m_head;
+        while (cur) {
+            auto next = cur->next[0];
+            delete cur;
+            cur = next;
+        }
     }
 
     bool search(T target) {
@@ -46,7 +55,7 @@ public:
 
     void add(T num) {
         std::lock_guard<std::mutex> lock(mtx);
-        std::vector<std::shared_ptr<Node>> update(P, nullptr);
+        std::vector<Node*> update(P, nullptr);
         auto cur = m_head;
 
         for (int level = P - 1; level >= 0; --level) {
@@ -56,7 +65,7 @@ public:
             update[level] = cur;
         }
 
-        auto newNode = std::make_shared<Node>(num);
+        auto newNode = new Node(num);
         for (int level = 0; level < P; ++level) {
             newNode->next[level] = update[level]->next[level];
             update[level]->next[level] = newNode;
@@ -66,7 +75,7 @@ public:
 
     bool erase(T num) {
         std::lock_guard<std::mutex> lock(mtx);
-        std::vector<std::shared_ptr<Node>> update(P, nullptr);
+        std::vector<Node*> update(P, nullptr);
         auto cur = m_head;
 
         for (int level = P - 1; level >= 0; --level) {
@@ -86,6 +95,7 @@ public:
                 update[level]->next[level] = target->next[level];
             }
         }
+        delete target;
         return true;
     }
 
