@@ -96,4 +96,5 @@ public:
         return true;
     }
 };
-}
+
+}  // namespace multithreaded_ds
